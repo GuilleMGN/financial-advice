@@ -19,6 +19,8 @@ Intended to run on a schedule (step 7: GitHub Actions), not by hand forever.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
 
 import firebase_admin
 from firebase_admin import credentials, firestore, messaging
@@ -27,6 +29,16 @@ from rsi_prototype import fetch_hourly, resample_to_4h, compute_rsi, find_signal
 
 TOPIC = "trading-alerts"
 LOOKBACK_DAYS = 30  # enough history for RSI(14) to warm up properly
+MARKET_TZ = ZoneInfo("America/New_York")
+MARKET_OPEN = time(9, 30)
+MARKET_CLOSE = time(16, 0)
+
+
+def is_market_hours() -> bool:
+    now = datetime.now(MARKET_TZ)
+    if now.weekday() >= 5:  # Saturday=5, Sunday=6
+        return False
+    return MARKET_OPEN <= now.time() <= MARKET_CLOSE
 
 
 def init_firebase(key_path: str):
@@ -91,7 +103,15 @@ def main():
     parser.add_argument("--key", required=True, help="path to Firebase service account JSON")
     parser.add_argument("--oversold", type=float, default=30)
     parser.add_argument("--overbought", type=float, default=70)
+    parser.add_argument("--force", action="store_true",
+                         help="run even if outside market hours (for manual testing)")
     args = parser.parse_args()
+
+    if not args.force and not is_market_hours():
+        now_et = datetime.now(MARKET_TZ)
+        print(f"Outside market hours ({now_et.strftime('%Y-%m-%d %H:%M %Z')}), skipping. "
+              f"Use --force to run anyway.")
+        return
 
     db = init_firebase(args.key)
     tickers = get_watchlist(db)
