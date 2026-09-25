@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Alerts</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        #status {
+            margin-top: 1rem;
+            font-size: 0.95rem;
+            color: #555;
+        }
+
+        #watchlist-section {
+            margin-top: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #ticker-input {
+            padding: 0.6rem;
+            font-size: 1rem;
+            width: 60%;
+        }
+
+        #add-btn {
+            padding: 0.6rem 1rem;
+            font-size: 1rem;
+        }
+
+        #watchlist-ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+
+        #watchlist-ul li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.7rem;
+            border-bottom: 1px solid #ddd;
+            font-size: 1.05rem;
+        }
+
+        .remove-btn {
+            color: #c0392b;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    </style>
+    <!-- Firebase JS SDK (compat build - plain <script> tags, no bundler needed) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <h1>Trading Alerts</h1>
+    <p id="status">Setting up notifications...</p>
+
+    <div id="watchlist-section">
+        <h2>Watchlist</h2>
+        <input id="ticker-input" placeholder="e.g. ZUE.TO" autocapitalize="characters">
+        <button id="add-btn">Add</button>
+        <ul id="watchlist-ul"></ul>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyASkWiQZjkOUyPlB_a3ULLQDXyZR1teWP0",
+            authDomain: "trading-alerts-fah67.firebaseapp.com",
+            projectId: "trading-alerts-fah67",
+            storageBucket: "trading-alerts-fah67.firebasestorage.app",
+            messagingSenderId: "47203553071",
+            appId: "1:47203553071:web:d3077eda130f7c59cf9bda"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const watchlistRef = db.collection('watchlist');
+
+        function renderWatchlist(snapshot) {
+            const ul = document.getElementById('watchlist-ul');
+            ul.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const li = document.createElement('li');
+                const span = document.createElement('span');
+                span.textContent = doc.id;
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.className = 'remove-btn';
+                removeBtn.onclick = () => watchlistRef.doc(doc.id).delete();
+                li.appendChild(span);
+                li.appendChild(removeBtn);
+                ul.appendChild(li);
+            });
+        }
+
+        // Live updates: UI reflects Firestore in real time, on this device or any other
+        watchlistRef.orderBy('addedAt').onSnapshot(renderWatchlist, (err) => {
+            console.error('Watchlist listener error:', err);
+        });
+
+        document.getElementById('add-btn').addEventListener('click', () => {
+            const input = document.getElementById('ticker-input');
+            const ticker = input.value.trim().toUpperCase();
+            if (!ticker) return;
+            watchlistRef.doc(ticker).set({
+                ticker: ticker,
+                addedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            input.value = '';
+        });
+
+        document.getElementById('ticker-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('add-btn').click();
+        });
+    </script>
+
+    <script>
+        function getFirebaseMessaging() {
+            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.FirebaseMessaging) {
+                return null;
+            }
+            return window.Capacitor.Plugins.FirebaseMessaging;
+        }
+
+        async function setup() {
+            const statusEl = document.getElementById('status');
+            const FirebaseMessaging = getFirebaseMessaging();
+
+            if (!FirebaseMessaging) {
+                statusEl.textContent = 'FirebaseMessaging plugin not found. Are you running this inside the Capacitor Android app (not a regular browser)?';
+                return;
+            }
+
+            try {
+                // Ask the user for notification permission (required on Android 13+)
+                const permResult = await FirebaseMessaging.requestPermissions();
+                if (permResult.receive !== 'granted') {
+                    statusEl.textContent = 'Notification permission denied. Enable it in phone Settings > Apps > Trading Alerts > Notifications.';
+                    return;
+                }
+
+                // Subscribe this device to the topic the backend sends to
+                await FirebaseMessaging.subscribeToTopic({ topic: 'trading-alerts' });
+                statusEl.textContent = 'Subscribed to trading-alerts. You should now receive push notifications.';
+
+                // Log incoming notifications while the app is open (useful for debugging)
+                FirebaseMessaging.addListener('notificationReceived', (event) => {
+                    console.log('Notification received in foreground:', event);
+                });
+            } catch (err) {
+                statusEl.textContent = 'Error: ' + err.message;
+                console.error(err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', setup);
+    </script>
+</body>
+
+</html>

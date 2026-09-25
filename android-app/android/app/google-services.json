@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "47203553071",
+    "project_id": "trading-alerts-fah67",
+    "storage_bucket": "trading-alerts-fah67.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:47203553071:android:4a477c17b84f9652cf9bda",
+        "android_client_info": {
+          "package_name": "com.financialadvice.tradingalerts"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQ3nZcL4KeOyCrfLw-JW53oFnfMMd9gb8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
