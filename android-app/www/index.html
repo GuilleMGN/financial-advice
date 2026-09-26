@@ -126,8 +126,11 @@
 <body>
     <div class="app">
         <header>
-            <h1>Financial Advice</h1>
-            <p class="subtitle">Get a push notification the moment a stock on your watchlist closes a 4H candle oversold (RSI &lt; 30) or overbought (RSI &gt; 70).</p>
+            <br>
+            <br>
+            <h1 style="text-align: center; font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">🙊 Financial Advice 🙈</h1>
+            <p style="text-align: center; font-family: monospace;" class="subtitle">Know when it's time to buy or sell.</p>
+            <br>
         </header>
 
         <div class="search-wrap">
@@ -289,9 +292,7 @@
             }
 
             const docs = snapshot.docs.slice().sort((a, b) => {
-                const nameA = (a.data().name || a.id).toLowerCase();
-                const nameB = (b.data().name || b.id).toLowerCase();
-                return nameA.localeCompare(nameB);
+                return a.id.toLowerCase().localeCompare(b.id.toLowerCase());
             });
 
             docs.forEach((doc) => {
