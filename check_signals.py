@@ -22,6 +22,7 @@ import argparse
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
+import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, firestore, messaging
 
@@ -84,7 +85,7 @@ def check_ticker(db, ticker: str, oversold: float, overbought: float):
     latest = four_h.iloc[-1]
     latest_ts = four_h.index[-1].isoformat()
 
-    if latest["signal"] is None:
+    if pd.isna(latest["signal"]):
         print(f"  {ticker}: no signal (RSI {latest['rsi']:.1f})")
         return
 
