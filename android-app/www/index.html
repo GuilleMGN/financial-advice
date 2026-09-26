@@ -62,6 +62,7 @@
     </style>
     <!-- Firebase JS SDK (compat build - plain <script> tags, no bundler needed) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 </head>
 
@@ -107,9 +108,27 @@
             });
         }
 
-        // Live updates: UI reflects Firestore in real time, on this device or any other
-        watchlistRef.orderBy('addedAt').onSnapshot(renderWatchlist, (err) => {
-            console.error('Watchlist listener error:', err);
+        function attachWatchlistListener() {
+            // Live updates: UI reflects Firestore in real time, on this device or any other
+            watchlistRef.orderBy('addedAt').onSnapshot(renderWatchlist, (err) => {
+                console.error('Watchlist listener error:', err);
+            });
+        }
+
+        // Sign in anonymously first - this ties Firestore access to THIS specific
+        // persisted identity (stored on-device), which the security rule will check
+        // against your UID specifically, not just "any auth token exists."
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                console.log('Signed in with UID:', user.uid);
+                document.title = 'Trading Alerts (UID: ' + user.uid + ')';
+                attachWatchlistListener();
+            } else {
+                firebase.auth().signInAnonymously().catch((err) => {
+                    console.error('Anonymous sign-in failed:', err);
+                    document.getElementById('status').textContent = 'Auth error: ' + err.message;
+                });
+            }
         });
 
         document.getElementById('add-btn').addEventListener('click', () => {
