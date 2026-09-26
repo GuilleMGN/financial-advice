@@ -1,83 +1,150 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Alerts</title>
+    <title>Financial Advice</title>
     <style>
+        :root {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --surface-hover: #2a2a2a;
+            --text: #e8e8e8;
+            --text-dim: #9a9a9a;
+            --border: #333333;
+            --accent: #4da6ff;
+            --buy: #2ecc71;
+            --sell: #e74c3c;
+        }
+        * { box-sizing: border-box; }
         body {
-            font-family: sans-serif;
-            padding: 2rem;
-            text-align: center;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, Roboto, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 1.5rem 1.25rem 3rem;
         }
-
-        #status {
-            margin-top: 1rem;
-            font-size: 0.95rem;
-            color: #555;
+        .app { max-width: 480px; margin: 0 auto; }
+        header { margin-bottom: 1.75rem; }
+        header h1 {
+            margin: 0 0 0.35rem;
+            font-size: 1.7rem;
+            letter-spacing: -0.02em;
         }
-
-        #watchlist-section {
-            margin-top: 2rem;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
+        header p.subtitle {
+            margin: 0;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            line-height: 1.4;
         }
-
-        #ticker-input {
-            padding: 0.6rem;
+        .search-wrap { position: relative; margin-bottom: 2rem; }
+        #ticker-search {
+            width: 100%;
+            padding: 0.75rem 0.9rem;
             font-size: 1rem;
-            width: 60%;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            outline: none;
         }
+        #ticker-search:focus { border-color: var(--accent); }
+        #search-results {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 10;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .search-result-item {
+            padding: 0.65rem 0.9rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover, .search-result-item:active { background: var(--surface-hover); }
+        .search-result-item .sym { font-weight: 600; }
+        .search-result-item .meta { color: var(--text-dim); font-size: 0.8rem; margin-top: 0.1rem; }
+        .search-hint { padding: 0.65rem 0.9rem; color: var(--text-dim); font-size: 0.85rem; }
 
-        #add-btn {
-            padding: 0.6rem 1rem;
+        .watchlist-section h2 {
             font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
         }
-
-        #watchlist-ul {
-            list-style: none;
-            padding: 0;
-            margin-top: 1.5rem;
-            text-align: left;
-        }
-
+        #watchlist-ul { list-style: none; padding: 0; margin: 0; }
         #watchlist-ul li {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.7rem;
-            border-bottom: 1px solid #ddd;
-            font-size: 1.05rem;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--border);
         }
-
+        .ticker-info .sym { font-weight: 600; font-size: 1.02rem; }
+        .ticker-info .name { display: block; color: var(--text-dim); font-size: 0.8rem; margin-top: 0.1rem; }
+        .right-side { display: flex; align-items: center; gap: 0.6rem; }
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+        .badge.buy { background: rgba(46, 204, 113, 0.15); color: var(--buy); }
+        .badge.sell { background: rgba(231, 76, 60, 0.15); color: var(--sell); }
+        .badge.none { background: rgba(255, 255, 255, 0.06); color: var(--text-dim); }
         .remove-btn {
-            color: #c0392b;
             background: none;
             border: none;
-            font-size: 1rem;
+            color: var(--sell);
+            font-size: 0.8rem;
             cursor: pointer;
+            padding: 0.25rem;
+        }
+        .empty-state { color: var(--text-dim); font-size: 0.9rem; padding: 0.5rem 0; }
+        #status {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            margin-top: 2.5rem;
         }
     </style>
-    <!-- Firebase JS SDK (compat build - plain <script> tags, no bundler needed) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 </head>
-
 <body>
-    <h1>Trading Alerts</h1>
-    <p id="status">Setting up notifications...</p>
+    <div class="app">
+        <header>
+            <h1>Financial Advice</h1>
+            <p class="subtitle">Get a push notification the moment a stock on your watchlist closes a 4H candle oversold (RSI &lt; 30) or overbought (RSI &gt; 70).</p>
+        </header>
 
-    <div id="watchlist-section">
-        <h2>Watchlist</h2>
-        <input id="ticker-input" placeholder="e.g. ZUE.TO" autocapitalize="characters">
-        <button id="add-btn">Add</button>
-        <ul id="watchlist-ul"></ul>
+        <div class="search-wrap">
+            <input id="ticker-search" type="text" placeholder="Search by ticker or company name..." autocomplete="off" autocapitalize="none">
+            <div id="search-results" style="display: none;"></div>
+        </div>
+
+        <div class="watchlist-section">
+            <h2>Watchlist</h2>
+            <ul id="watchlist-ul"></ul>
+        </div>
+
+        <p id="status">Setting up notifications...</p>
     </div>
 
     <script>
+        // ---- Firebase config (from Firebase Console > Project Settings > Your apps > web app) ----
         const firebaseConfig = {
             apiKey: "AIzaSyASkWiQZjkOUyPlB_a3ULLQDXyZR1teWP0",
             authDomain: "trading-alerts-fah67.firebaseapp.com",
@@ -87,41 +154,152 @@
             appId: "1:47203553071:web:d3077eda130f7c59cf9bda"
         };
 
+        // ---- Twelve Data key (from twelvedata.com/register - free plan, no card needed) ----
+        const TWELVE_DATA_API_KEY = "3df42cd6296e4b12a55ee1e6fc6fe002";
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const watchlistRef = db.collection('watchlist');
 
+        // ---------- Exchange -> Yahoo/yfinance suffix mapping ----------
+        // Twelve Data returns bare symbols (e.g. "ZUE" with exchange "TSX"), but the
+        // backend uses yfinance, which needs Yahoo-style suffixed tickers (e.g. "ZUE.TO").
+        function toYahooTicker(symbol, exchange, micCode) {
+            const ex = (exchange || '').toUpperCase();
+            const mic = (micCode || '').toUpperCase();
+            if (ex === 'TSX' || mic === 'XTSE') return symbol + '.TO';
+            if (ex === 'TSXV' || mic === 'XTSX') return symbol + '.V';
+            if (ex === 'NEO' || ex === 'CBOE CA' || mic === 'NEOE') return symbol + '.NE';
+            if (ex === 'CSE' || mic === 'XCNQ') return symbol + '.CN';
+            // US and other exchanges: yfinance generally accepts the bare symbol
+            return symbol;
+        }
+
+        // ---------- Ticker search (debounced) ----------
+        const searchInput = document.getElementById('ticker-search');
+        const resultsBox = document.getElementById('search-results');
+        let debounceTimer = null;
+        let lastQuery = '';
+
+        function clearResults() {
+            resultsBox.style.display = 'none';
+            resultsBox.innerHTML = '';
+        }
+
+        async function runSearch(query) {
+            if (TWELVE_DATA_API_KEY.startsWith('PASTE_')) {
+                resultsBox.innerHTML = '<div class="search-hint">Add your Twelve Data API key in index.html to enable search.</div>';
+                resultsBox.style.display = 'block';
+                return;
+            }
+            try {
+                const url = `https://api.twelvedata.com/symbol_search?symbol=${encodeURIComponent(query)}&apikey=${TWELVE_DATA_API_KEY}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                const items = (data.data || []).slice(0, 8);
+
+                if (items.length === 0) {
+                    resultsBox.innerHTML = '<div class="search-hint">No matches found.</div>';
+                    resultsBox.style.display = 'block';
+                    return;
+                }
+
+                resultsBox.innerHTML = '';
+                items.forEach((item) => {
+                    const row = document.createElement('div');
+                    row.className = 'search-result-item';
+                    row.innerHTML = `
+                        <div class="sym">${item.symbol}</div>
+                        <div class="meta">${item.instrument_name || ''} &middot; ${item.exchange || ''} (${item.country || ''})</div>
+                    `;
+                    row.addEventListener('click', () => addTickerFromSearch(item));
+                    resultsBox.appendChild(row);
+                });
+                resultsBox.style.display = 'block';
+            } catch (err) {
+                console.error('Symbol search failed:', err);
+                resultsBox.innerHTML = '<div class="search-hint">Search failed. Check your connection or API key.</div>';
+                resultsBox.style.display = 'block';
+            }
+        }
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim();
+            clearTimeout(debounceTimer);
+            if (query.length < 2) {
+                clearResults();
+                return;
+            }
+            if (query === lastQuery) return;
+            debounceTimer = setTimeout(() => {
+                lastQuery = query;
+                runSearch(query);
+            }, 450);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-wrap')) clearResults();
+        });
+
+        function addTickerFromSearch(item) {
+            const yahooTicker = toYahooTicker(item.symbol, item.exchange, item.mic_code);
+            watchlistRef.doc(yahooTicker).set({
+                ticker: yahooTicker,
+                name: item.instrument_name || '',
+                exchange: item.exchange || '',
+                addedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            searchInput.value = '';
+            lastQuery = '';
+            clearResults();
+        }
+
+        // ---------- Watchlist rendering ----------
+        function signalBadge(lastSignal) {
+            if (lastSignal === 'BUY') return '<span class="badge buy">Buy</span>';
+            if (lastSignal === 'SELL') return '<span class="badge sell">Sell</span>';
+            return '<span class="badge none">None</span>';
+        }
+
         function renderWatchlist(snapshot) {
             const ul = document.getElementById('watchlist-ul');
             ul.innerHTML = '';
+
+            if (snapshot.empty) {
+                ul.innerHTML = '<li class="empty-state">No tickers yet. Search above to add one.</li>';
+                return;
+            }
+
             snapshot.forEach((doc) => {
+                const data = doc.data();
                 const li = document.createElement('li');
-                const span = document.createElement('span');
-                span.textContent = doc.id;
-                const removeBtn = document.createElement('button');
-                removeBtn.textContent = 'Remove';
-                removeBtn.className = 'remove-btn';
-                removeBtn.onclick = () => watchlistRef.doc(doc.id).delete();
-                li.appendChild(span);
-                li.appendChild(removeBtn);
+                li.innerHTML = `
+                    <div class="ticker-info">
+                        <span class="sym">${doc.id}</span>
+                        <span class="name">${data.name || ''}</span>
+                    </div>
+                    <div class="right-side">
+                        ${signalBadge(data.last_signal)}
+                        <button class="remove-btn" data-id="${doc.id}">Remove</button>
+                    </div>
+                `;
+                li.querySelector('.remove-btn').addEventListener('click', () => {
+                    watchlistRef.doc(doc.id).delete();
+                });
                 ul.appendChild(li);
             });
         }
 
         function attachWatchlistListener() {
-            // Live updates: UI reflects Firestore in real time, on this device or any other
             watchlistRef.orderBy('addedAt').onSnapshot(renderWatchlist, (err) => {
                 console.error('Watchlist listener error:', err);
             });
         }
 
-        // Sign in anonymously first - this ties Firestore access to THIS specific
-        // persisted identity (stored on-device), which the security rule will check
-        // against your UID specifically, not just "any auth token exists."
+        // ---------- Auth (gates Firestore access per the security rules) ----------
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 console.log('Signed in with UID:', user.uid);
-                document.title = 'Trading Alerts (UID: ' + user.uid + ')';
                 attachWatchlistListener();
             } else {
                 firebase.auth().signInAnonymously().catch((err) => {
@@ -131,23 +309,7 @@
             }
         });
 
-        document.getElementById('add-btn').addEventListener('click', () => {
-            const input = document.getElementById('ticker-input');
-            const ticker = input.value.trim().toUpperCase();
-            if (!ticker) return;
-            watchlistRef.doc(ticker).set({
-                ticker: ticker,
-                addedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            input.value = '';
-        });
-
-        document.getElementById('ticker-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') document.getElementById('add-btn').click();
-        });
-    </script>
-
-    <script>
+        // ---------- Push notification subscription (FCM) ----------
         function getFirebaseMessaging() {
             if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.FirebaseMessaging) {
                 return null;
@@ -155,39 +317,34 @@
             return window.Capacitor.Plugins.FirebaseMessaging;
         }
 
-        async function setup() {
+        async function setupMessaging() {
             const statusEl = document.getElementById('status');
             const FirebaseMessaging = getFirebaseMessaging();
 
             if (!FirebaseMessaging) {
-                statusEl.textContent = 'FirebaseMessaging plugin not found. Are you running this inside the Capacitor Android app (not a regular browser)?';
+                statusEl.textContent = 'Notifications unavailable outside the Android app.';
                 return;
             }
 
             try {
-                // Ask the user for notification permission (required on Android 13+)
                 const permResult = await FirebaseMessaging.requestPermissions();
                 if (permResult.receive !== 'granted') {
-                    statusEl.textContent = 'Notification permission denied. Enable it in phone Settings > Apps > Trading Alerts > Notifications.';
+                    statusEl.textContent = 'Notifications disabled - enable in phone Settings > Apps > Financial Advice.';
                     return;
                 }
-
-                // Subscribe this device to the topic the backend sends to
                 await FirebaseMessaging.subscribeToTopic({ topic: 'trading-alerts' });
-                statusEl.textContent = 'Subscribed to trading-alerts. You should now receive push notifications.';
+                statusEl.textContent = 'Subscribed to alerts.';
 
-                // Log incoming notifications while the app is open (useful for debugging)
                 FirebaseMessaging.addListener('notificationReceived', (event) => {
                     console.log('Notification received in foreground:', event);
                 });
             } catch (err) {
-                statusEl.textContent = 'Error: ' + err.message;
+                statusEl.textContent = 'Notification setup error: ' + err.message;
                 console.error(err);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', setup);
+        document.addEventListener('DOMContentLoaded', setupMessaging);
     </script>
 </body>
-
 </html>
