@@ -49,8 +49,15 @@ def init_firebase(key_path: str):
 
 
 def get_watchlist(db) -> list:
+    """Returns a list of (ticker, asset_type) tuples. Docs added before the
+    crypto feature don't have a 'type' field - default those to 'stock'."""
     docs = db.collection("watchlist").stream()
-    return [doc.id for doc in docs]
+    result = []
+    for doc in docs:
+        data = doc.to_dict() or {}
+        asset_type = data.get("type", "stock")
+        result.append((doc.id, asset_type))
+    return result
 
 
 def send_signal_notification(ticker: str, signal: str, price: float, rsi: float):
@@ -104,25 +111,28 @@ def main():
     parser.add_argument("--oversold", type=float, default=30)
     parser.add_argument("--overbought", type=float, default=70)
     parser.add_argument("--force", action="store_true",
-                         help="run even if outside market hours (for manual testing)")
+                         help="check stocks even outside market hours (for manual testing)")
     args = parser.parse_args()
 
-    if not args.force and not is_market_hours():
-        now_et = datetime.now(MARKET_TZ)
-        print(f"Outside market hours ({now_et.strftime('%Y-%m-%d %H:%M %Z')}), skipping. "
-              f"Use --force to run anyway.")
-        return
-
     db = init_firebase(args.key)
-    tickers = get_watchlist(db)
+    watchlist = get_watchlist(db)
 
-    if not tickers:
+    if not watchlist:
         print("Watchlist is empty. Add tickers from the app first.")
         return
 
-    print(f"Checking {len(tickers)} ticker(s): {', '.join(tickers)}\n")
-    for ticker in tickers:
-        print(f"--- {ticker} ---")
+    market_open = args.force or is_market_hours()
+    if not market_open:
+        now_et = datetime.now(MARKET_TZ)
+        print(f"Outside stock market hours ({now_et.strftime('%Y-%m-%d %H:%M %Z')}) - "
+              f"stocks will be skipped this run, crypto tickers still checked.\n")
+
+    print(f"Checking {len(watchlist)} ticker(s): {', '.join(t for t, _ in watchlist)}\n")
+    for ticker, asset_type in watchlist:
+        print(f"--- {ticker} ({asset_type}) ---")
+        if asset_type == "stock" and not market_open:
+            print("  Skipped: outside market hours")
+            continue
         check_ticker(db, ticker, args.oversold, args.overbought)
 
 

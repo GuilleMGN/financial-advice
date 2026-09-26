@@ -2,12 +2,10 @@ name: RSI Signal Check
 
 on:
   schedule:
-    # Every hour, 13:00-21:00 UTC, Monday-Friday.
-    # This window is intentionally wider than 9:30am-4:00pm ET to cover
-    # both EST and EDT without needing two separate schedules - the script
-    # itself (check_signals.py) checks the real ET time and no-ops if
-    # outside actual market hours.
-    - cron: '0 13-21 * * 1-5'
+    # Every hour, every day. Stocks are filtered out server-side (inside
+    # check_signals.py) when outside market hours - crypto tickers are
+    # always checked since crypto markets never close.
+    - cron: '0 * * * *'
   workflow_dispatch:  # lets you trigger a run manually from the Actions tab, for testing
 
 jobs:

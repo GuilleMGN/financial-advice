@@ -208,9 +208,10 @@
                 items.forEach((item) => {
                     const row = document.createElement('div');
                     row.className = 'search-result-item';
+                    const countryPart = item.country ? ` (${item.country})` : '';
                     row.innerHTML = `
                         <div class="sym">${item.symbol}</div>
-                        <div class="meta">${item.instrument_name || ''} &middot; ${item.exchange || ''} (${item.country || ''})</div>
+                        <div class="meta">${item.instrument_name || ''} &middot; ${item.exchange || ''}${countryPart}</div>
                     `;
                     row.addEventListener('click', () => addTickerFromSearch(item));
                     resultsBox.appendChild(row);
@@ -242,13 +243,30 @@
         });
 
         function addTickerFromSearch(item) {
-            const yahooTicker = toYahooTicker(item.symbol, item.exchange, item.mic_code);
+            const isCrypto = item.symbol.includes('/');
+            let yahooTicker, assetType;
+
+            if (isCrypto) {
+                // Firestore doc IDs can't contain "/" - and yfinance expects a dash anyway
+                // (e.g. Yahoo's "BTC-USD" rather than Twelve Data's "BTC/USD").
+                yahooTicker = item.symbol.replace('/', '-');
+                assetType = 'crypto';
+            } else {
+                yahooTicker = toYahooTicker(item.symbol, item.exchange, item.mic_code);
+                assetType = 'stock';
+            }
+
             watchlistRef.doc(yahooTicker).set({
                 ticker: yahooTicker,
                 name: item.instrument_name || '',
                 exchange: item.exchange || '',
+                type: assetType,
                 addedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch((err) => {
+                console.error('Failed to add ticker:', err);
+                alert('Could not add ' + yahooTicker + ': ' + err.message);
             });
+
             searchInput.value = '';
             lastQuery = '';
             clearResults();
@@ -270,7 +288,13 @@
                 return;
             }
 
-            snapshot.forEach((doc) => {
+            const docs = snapshot.docs.slice().sort((a, b) => {
+                const nameA = (a.data().name || a.id).toLowerCase();
+                const nameB = (b.data().name || b.id).toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+
+            docs.forEach((doc) => {
                 const data = doc.data();
                 const li = document.createElement('li');
                 li.innerHTML = `
